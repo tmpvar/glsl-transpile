@@ -11,7 +11,8 @@ add_subdirectory(deps/SPIRV-Cross)
 
 include_directories(
   include
-	deps/SPIRV-Cross
+  deps/SPIRV-Cross
+  deps/json
 )
 
 add_executable(
