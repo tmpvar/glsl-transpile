@@ -4,8 +4,12 @@ project(GLSLTranspile)
 set(ENABLE_HLSL OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/glslang)
 
+set(SPIRV_CROSS_CLI OFF CACHE BOOL "" FORCE)
+add_subdirectory(deps/SPIRV-Cross)
+
 include_directories(
   include
+	deps/SPIRV-Cross
 )
 
 add_executable(
@@ -18,4 +22,9 @@ target_link_libraries(
 	glslang
 	glslang-default-resource-limits
 	SPIRV
+	spirv-cross-core
+	spirv-cross-glsl
+	spirv-cross-util
+	spirv-cross-reflect
+	spirv-cross-cpp
  )

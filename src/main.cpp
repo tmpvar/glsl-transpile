@@ -22,6 +22,7 @@
 #include "SPIRV/disassemble.h"
 #include "SPIRV/Logger.h"
 
+#include "spirv_glsl.hpp"
 
 #include <iostream>
 using namespace std;
@@ -237,6 +238,8 @@ int main(void) {
 	"};"
 	"void main() {"
 	"  blueNoise[gl_GlobalInvocationID.x] = vec4(aVector, 1.0);"
+	"  vec4 a = imageLoad(img1, ivec2(10, 10));"
+	"  imageStore(img1, ivec2(10, 10), a * 10.0);"
 	"}\0"
   };
   // TODO: use setStringsWithLengths for safety
@@ -292,8 +295,20 @@ int main(void) {
 	  
 
 	  cout << "SPIRV " << logger.getAllMessages().c_str();
-	  spv::Disassemble(std::cout, spirv);
-	  //glslang::OutputSpvBin(spirv, GetBinaryName((EShLanguage)stage));
+	  //spv::Disassemble(std::cout, spirv);
+	  glslang::OutputSpvBin(spirv, "out.spirv");
+	  
+	  spirv[1] = SPV_VERSION;
+	  spirv_cross::CompilerGLSL glsl(spirv);
+	  spirv_cross::CompilerGLSL::Options options;
+
+	  options.version = 460;
+	  options.es = false;
+	  glsl.set_common_options(options);
+
+	  // Compile to GLSL, ready to give to GL driver.
+	  std::string source = glsl.compile();
+	  cout << "transpiled to" << endl << source << endl;
 	}
   }
   return 1;
