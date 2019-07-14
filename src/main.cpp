@@ -27,6 +27,7 @@
 #include "spirv_msl.hpp"
 
 #include "json.hpp"
+#include "argh.h"
 
 #include <iostream>
 using namespace std;
@@ -211,8 +212,30 @@ public:
   }
 };
 
+enum OutputLang {
+  NONE = 0,
+  GLSL,
+  HLSL,
+  MSL
+};
 
-int main(void) {
+int main(int, char* argv[]) {
+  argh::parser cmdl(argv);
+  string langOption;
+  cmdl(1) >> langOption;
+
+  OutputLang lang;
+  if (langOption == "msl") {
+    lang = OutputLang::MSL;
+  } else if (langOption == "hlsl") {
+    lang = OutputLang::HLSL;
+  } else if (langOption == "glsl") {
+    lang = OutputLang::GLSL;
+  } else {
+    cerr << "Usage: cat source.glsl | glsl-transpile (msl|glsl|hlsl)" << endl;
+    return 1;
+  }
+
 
   if (!glslang::InitializeProcess()) {
      return 1;
@@ -310,34 +333,27 @@ int main(void) {
       obj["stages"][stageName]["log"] = logger.getAllMessages();
 
       spirv[1] = SPV_VERSION;
-      // spirv_cross::CompilerGLSL glsl(spirv);
-      // spirv_cross::CompilerGLSL::Options glslOptions;
-      //
-      // glslOptions.version = 460;
-      // glslOptions.es = false;
-      // glsl.set_common_options(glslOptions);
-      //
-      // // Compile to GLSL, ready to give to GL driver.
-      // std::string glslSource = glsl.compile();
-      // cout << "transpiled to GLSL" << endl << glslSource << endl;
 
-      spirv_cross::CompilerHLSL hlsl(spirv);
-      spirv_cross::CompilerHLSL::Options hlslOptions;
-      hlslOptions.shader_model = 50;
-      hlsl.set_hlsl_options(hlslOptions);
-      std::string hlslSource = hlsl.compile();
-      obj["stages"][stageName]["source"] = hlslSource;
+      if (lang == OutputLang::GLSL) {
+          spirv_cross::CompilerGLSL glsl(spirv);
+          spirv_cross::CompilerGLSL::Options glslOptions;
 
-      // spirv_cross::CompilerMSL msl(spirv);
-      // // spirv_cross::CompilerMSL::Options mslOptions;
-      // //hlslOptions.shader_model = 50;
-      // // options.version = 460;
-      // // options.es = false;
-      // // msl.set_msl_options(hlslOptions);
-      //
-      // // Compile to GLSL, ready to give to GL driver.
-      // std::string mslSource = msl.compile();
-      // cout << "transpiled to MSL" << endl << mslSource << endl;
+          glslOptions.version = 460;
+          glslOptions.es = false;
+          glsl.set_common_options(glslOptions);
+
+          obj["stages"][stageName]["source"] = glsl.compile();
+      } else if (lang == OutputLang::HLSL) {
+          spirv_cross::CompilerHLSL hlsl(spirv);
+          spirv_cross::CompilerHLSL::Options hlslOptions;
+          hlslOptions.shader_model = 50;
+          hlsl.set_hlsl_options(hlslOptions);
+          obj["stages"][stageName]["source"] = hlsl.compile();
+      } else if (lang == OutputLang::MSL) {
+          spirv_cross::CompilerMSL msl(spirv);
+          obj["stages"][stageName]["source"] = msl.compile();
+      }
+
       active_stage++;
     }
   }

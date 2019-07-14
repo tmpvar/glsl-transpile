@@ -13,6 +13,7 @@ include_directories(
   include
   deps/SPIRV-Cross
   deps/json
+  deps/argh
 )
 
 add_executable(
