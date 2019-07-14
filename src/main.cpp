@@ -26,6 +26,8 @@
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
 
+
+
 #include "json.hpp"
 #include "argh.h"
 
@@ -35,7 +37,7 @@ using namespace std;
 std::string pad(int l) {
   std::string o = "";
   for (int i = 0; i < l; i++) {
-  o+="  ";
+    o+="  ";
   }
   return o;
 }
@@ -92,123 +94,130 @@ public:
   LinkerObjectsIterator(): TIntermTraverser(false, true, false) {};
 
   bool visitAggregate(glslang::TVisit, glslang::TIntermAggregate* node) {
-  switch (node->getOp()) {
-    case glslang::EOpLinkerObjects:
-    return true;
-    case glslang::EOpSequence:
-    return true;
+    switch (node->getOp()) {
+      case glslang::EOpLinkerObjects:
+        return true;
+      case glslang::EOpSequence:
+        return true;
+      default:
+        return false;
+    }
   }
-  return false;
-  }
+
   void visitSymbol(glslang::TIntermSymbol* node) {
     glslang::TQualifier q = node->getQualifier();
-  if (!q.isIo()) {
-    return;
-  }
-
-  ProgramSlot *s = new ProgramSlot;
-
-
-  switch (q.storage) {
-  case glslang::EvqUniform:
-    s->binding_type = "uniform";
-    s->name = node->getName().c_str();
-    s->input = true;
-    s->output = false;
-  break;
-  case glslang::EvqBuffer:
-    s->binding_type = "buffer";
-    s->name = node->getType().getTypeName().c_str();
-    s->packing = glslang::TQualifier::getLayoutPackingString(q.layoutPacking);
-
-    if (q.readonly) {
-    s->input = true;
-    s->output = false;
-    } else if (q.writeonly) {
-    s->input = false;
-    s->output = true;
-    } else {
-    s->input = true;
-    s->output = true;
-    }
-  break;
-  default:
-    int a = 1;
-    delete s;
-    return;
-  }
-
-  this->slots.push_back(s);
-
-  if (node->getType().isVector()) {
-    s->type = "vector";
-    SlotStructEntry *entry = new SlotStructEntry;
-
-    //entry->name.assign(t->getFieldName().c_str(), t->getFieldName().size());
-    const glslang::TString str = node->getType().getBasicTypeString();
-    entry->type.assign(str.c_str(), str.size());
-    entry->cols = node->getType().getVectorSize();
-    s->structure.push_back(entry);
-  }
-
-  if (node->getType().isMatrix()) {
-    s->type = "matrix";
-    SlotStructEntry *entry = new SlotStructEntry;
-    const glslang::TString str = node->getType().getBasicTypeString();
-    entry->type.assign(str.c_str(), str.size());
-    entry->rows = node->getType().getMatrixRows();
-    entry->cols = node->getType().getMatrixCols();
-    s->structure.push_back(entry);
-  }
-
-  if (node->getType().isStruct()) {
-    s->type = "struct";
-    const glslang::TTypeList *structure = node->getType().getStruct();
-
-    for (glslang::TTypeList::const_iterator tl = structure->begin(); tl != structure->end(); tl++) {
-    SlotStructEntry *entry = new SlotStructEntry;
-    glslang::TType *t = (*tl).type;
-
-    entry->name.assign(t->getFieldName().c_str(), t->getFieldName().size());
-    entry->type.assign(t->getBasicTypeString().c_str(), t->getBasicTypeString().size());
-
-    entry->cols = t->getVectorSize();
-    s->structure.push_back(entry);
-    }
-  }
-
-  if (node->getType().isTexture() || node->getType().isImage()) {
-    s->type = "texture";
-    const glslang::TSampler &sampler = node->getType().getSampler();
-    SlotStructEntry *entry = new SlotStructEntry;
-
-    if (sampler.isPureSampler()) {
-    entry->type = "sampler";
-    } else if (sampler.isTexture()) {
-    entry->type = "texture";
-    } else if (sampler.isShadow()) {
-    entry->type = "shadow";
-    } else if (sampler.isImage()) {
-    entry->type = "image";
+    if (!q.isIo()) {
+      return;
     }
 
-    switch (sampler.dim) {
-    case glslang::Esd1D: entry->rows = 1; break;
-    case glslang::Esd2D: entry->rows = 2; break;
-    case glslang::Esd3D: entry->rows = 3; break;
-    /*case glslang::EsdCube:break;
-    case glslang::EsdRect:break;
-    case glslang::EsdBuffer:break;*/
-    }
-    entry->cols = sampler.getVectorSize();
-    s->structure.push_back(entry);
-  }
+    ProgramSlot *s = new ProgramSlot;
 
-  if (node->getConstSubtree()) {
-    incrementDepth(node);
-    node->getConstSubtree()->traverse(this);
-    decrementDepth();
-  }
+
+    switch (q.storage) {
+      case glslang::EvqUniform:
+        s->binding_type = "uniform";
+        s->name = node->getName().c_str();
+        s->input = true;
+        s->output = false;
+        break;
+      case glslang::EvqBuffer:
+        s->binding_type = "buffer";
+        s->name = node->getType().getTypeName().c_str();
+        s->packing = glslang::TQualifier::getLayoutPackingString(q.layoutPacking);
+
+        if (q.readonly) {
+          s->input = true;
+          s->output = false;
+        } else if (q.writeonly) {
+          s->input = false;
+          s->output = true;
+        } else {
+          s->input = true;
+          s->output = true;
+        }
+        break;
+      default:
+        int a = 1;
+        delete s;
+        return;
+    }
+
+    this->slots.push_back(s);
+
+    if (node->getType().isVector()) {
+      s->type = "vector";
+      SlotStructEntry *entry = new SlotStructEntry;
+
+      //entry->name.assign(t->getFieldName().c_str(), t->getFieldName().size());
+      const glslang::TString str = node->getType().getBasicTypeString();
+      entry->type.assign(str.c_str(), str.size());
+      entry->cols = node->getType().getVectorSize();
+      s->structure.push_back(entry);
+    }
+
+    if (node->getType().isMatrix()) {
+      s->type = "matrix";
+      SlotStructEntry *entry = new SlotStructEntry;
+      const glslang::TString str = node->getType().getBasicTypeString();
+      entry->type.assign(str.c_str(), str.size());
+      entry->rows = node->getType().getMatrixRows();
+      entry->cols = node->getType().getMatrixCols();
+      s->structure.push_back(entry);
+    }
+
+    if (node->getType().isStruct()) {
+      s->type = "struct";
+      const glslang::TTypeList *structure = node->getType().getStruct();
+
+      for (glslang::TTypeList::const_iterator tl = structure->begin(); tl != structure->end(); tl++) {
+      SlotStructEntry *entry = new SlotStructEntry;
+      glslang::TType *t = (*tl).type;
+
+      entry->name.assign(t->getFieldName().c_str(), t->getFieldName().size());
+      entry->type.assign(t->getBasicTypeString().c_str(), t->getBasicTypeString().size());
+
+      entry->cols = t->getVectorSize();
+      s->structure.push_back(entry);
+      }
+    }
+
+    if (node->getType().isTexture() || node->getType().isImage()) {
+      s->type = "texture";
+      const glslang::TSampler &sampler = node->getType().getSampler();
+      SlotStructEntry *entry = new SlotStructEntry;
+
+      if (sampler.isPureSampler()) {
+        entry->type = "sampler";
+      } else if (sampler.isTexture()) {
+        entry->type = "texture";
+      } else if (sampler.isShadow()) {
+        entry->type = "shadow";
+      } else if (sampler.isImage()) {
+        entry->type = "image";
+      }
+
+      switch (sampler.dim) {
+        case glslang::Esd1D: entry->rows = 1; break;
+        case glslang::Esd2D: entry->rows = 2; break;
+        case glslang::Esd3D: entry->rows = 3; break;
+        default: break;
+
+        // case glslang::EsdCube:
+        //   break;
+        // case glslang::EsdRect:
+        //   break;
+        // case glslang::EsdBuffer:
+        //   break;
+      }
+      entry->cols = sampler.getVectorSize();
+      s->structure.push_back(entry);
+    }
+
+    if (node->getConstSubtree()) {
+      incrementDepth(node);
+      node->getConstSubtree()->traverse(this);
+      decrementDepth();
+    }
   }
 };
 
@@ -235,7 +244,6 @@ int main(int, char* argv[]) {
     cerr << "Usage: cat source.glsl | glsl-transpile (msl|glsl|hlsl)" << endl;
     return 1;
   }
-
 
   if (!glslang::InitializeProcess()) {
      return 1;
@@ -286,7 +294,6 @@ int main(int, char* argv[]) {
     obj["error"]["type"] = "parse";
     obj["error"]["log"] = shader->getInfoLog();
     std::cout << obj.dump(4) << std::endl;
-    // std::cout << "shader failed to compile: " << std::endl << shader->getInfoLog() << std::endl;
     return 1;
   }
 
@@ -304,15 +311,12 @@ int main(int, char* argv[]) {
 
   LinkerObjectsIterator *it = new LinkerObjectsIterator();
   ast->getTreeRoot()->traverse(it);
-
-
   it->dumpSlots(obj);
 
   program->buildReflection(
     EShReflectionAllBlockVariables |
     EShReflectionIntermediateIO | 0xFF
   );
-
 
   int active_stage = 0;
   for (int stage = 0; stage < EShLangCount; ++stage) {
@@ -322,10 +326,10 @@ int main(int, char* argv[]) {
       std::string warningsErrors;
       spv::SpvBuildLogger logger;
       glslang::SpvOptions spvOptions;
-      //if (Options & EOptionDebug)
-      //  spvOptions.generateDebugInfo = true;
-      spvOptions.disableOptimizer = false;//(Options & EOptionOptimizeDisable) != 0;
-      spvOptions.optimizeSize = false;//(Options & EOptionOptimizeSize) != 0;
+
+      spvOptions.generateDebugInfo = true;
+      spvOptions.disableOptimizer = false;
+      spvOptions.optimizeSize = false;
       spvOptions.disassemble = false;
       spvOptions.validate = true;
 
