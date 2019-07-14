@@ -26,6 +26,8 @@ target_link_libraries(
 	SPIRV
 	spirv-cross-core
 	spirv-cross-glsl
+	spirv-cross-hlsl
+	spirv-cross-msl
 	spirv-cross-util
 	spirv-cross-reflect
 	spirv-cross-cpp

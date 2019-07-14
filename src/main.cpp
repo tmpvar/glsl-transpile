@@ -23,6 +23,8 @@
 #include "SPIRV/Logger.h"
 
 #include "spirv_glsl.hpp"
+#include "spirv_hlsl.hpp"
+#include "spirv_msl.hpp"
 
 #include <iostream>
 using namespace std;
@@ -278,38 +280,63 @@ int main(void) {
 
 
   for (int stage = 0; stage < EShLangCount; ++stage) {
-	if (program->getIntermediate((EShLanguage)stage)) {
-	  std::vector<unsigned int> spirv;
-	  std::string warningsErrors;
-	  spv::SpvBuildLogger logger;
-	  glslang::SpvOptions spvOptions;
-	  //if (Options & EOptionDebug)
-	  //	spvOptions.generateDebugInfo = true;
-	  spvOptions.disableOptimizer = false;//(Options & EOptionOptimizeDisable) != 0;
-	  spvOptions.optimizeSize = false;//(Options & EOptionOptimizeSize) != 0;
-	  spvOptions.disassemble = false;
-	  spvOptions.validate = true;
+  	if (program->getIntermediate((EShLanguage)stage)) {
+  	  std::vector<unsigned int> spirv;
+  	  std::string warningsErrors;
+  	  spv::SpvBuildLogger logger;
+  	  glslang::SpvOptions spvOptions;
+  	  //if (Options & EOptionDebug)
+  	  //	spvOptions.generateDebugInfo = true;
+  	  spvOptions.disableOptimizer = false;//(Options & EOptionOptimizeDisable) != 0;
+  	  spvOptions.optimizeSize = false;//(Options & EOptionOptimizeSize) != 0;
+  	  spvOptions.disassemble = false;
+  	  spvOptions.validate = true;
 
-	  glslang::GlslangToSpv(*program->getIntermediate((EShLanguage)stage), spirv, &logger, &spvOptions);
+  	  glslang::GlslangToSpv(*program->getIntermediate((EShLanguage)stage), spirv, &logger, &spvOptions);
 
-	  
 
-	  cout << "SPIRV " << logger.getAllMessages().c_str();
-	  //spv::Disassemble(std::cout, spirv);
-	  glslang::OutputSpvBin(spirv, "out.spirv");
-	  
-	  spirv[1] = SPV_VERSION;
-	  spirv_cross::CompilerGLSL glsl(spirv);
-	  spirv_cross::CompilerGLSL::Options options;
 
-	  options.version = 460;
-	  options.es = false;
-	  glsl.set_common_options(options);
+  	  cout << "SPIRV " << logger.getAllMessages().c_str();
+  	  //spv::Disassemble(std::cout, spirv);
+  	  glslang::OutputSpvBin(spirv, "out.spirv");
 
-	  // Compile to GLSL, ready to give to GL driver.
-	  std::string source = glsl.compile();
-	  cout << "transpiled to" << endl << source << endl;
-	}
+  	  spirv[1] = SPV_VERSION;
+  	  spirv_cross::CompilerGLSL glsl(spirv);
+  	  spirv_cross::CompilerGLSL::Options glslOptions;
+
+  	  glslOptions.version = 460;
+  	  glslOptions.es = false;
+  	  glsl.set_common_options(glslOptions);
+
+  	  // Compile to GLSL, ready to give to GL driver.
+  	  std::string glslSource = glsl.compile();
+  	  cout << "transpiled to GLSL" << endl << glslSource << endl;
+
+      spirv_cross::CompilerHLSL hlsl(spirv);
+      spirv_cross::CompilerHLSL::Options hlslOptions;
+      hlslOptions.shader_model = 50;
+      // options.version = 460;
+      // options.es = false;
+      hlsl.set_hlsl_options(hlslOptions);
+
+      // Compile to GLSL, ready to give to GL driver.
+      std::string hlslSource = hlsl.compile();
+      cout << "transpiled to HLSL" << endl << hlslSource << endl;
+
+
+      spirv_cross::CompilerMSL msl(spirv);
+      // spirv_cross::CompilerMSL::Options mslOptions;
+      //hlslOptions.shader_model = 50;
+      // options.version = 460;
+      // options.es = false;
+      // msl.set_msl_options(hlslOptions);
+
+      // Compile to GLSL, ready to give to GL driver.
+      std::string mslSource = msl.compile();
+      cout << "transpiled to MSL" << endl << mslSource << endl;
+
+
+  	}
   }
   return 1;
 }
