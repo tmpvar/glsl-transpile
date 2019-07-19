@@ -1,0 +1,21 @@
+uniform vec3 aVector;
+uniform sampler1D my1DTexture;
+uniform sampler2D myTexture;
+uniform sampler3D myArrayTexture[2];
+uniform vec3 anUnusedVector;
+uniform mat4 anUnusedMat4;
+layout(rgba32f) uniform image2D img1;
+layout(local_size_x = 32, local_size_y = 8, local_size_z = 1) in;
+layout (std430) buffer blueNoiseBuffer {
+  vec4 blueNoise[];
+};
+layout (std430) buffer unusedBuffer {
+  float aFloat;
+  uint aUint;
+  vec4 unused[];
+};
+void main() {
+  blueNoise[gl_GlobalInvocationID.x] = vec4(aVector, 1.0);
+  vec4 a = imageLoad(img1, ivec2(10, 10));
+  imageStore(img1, ivec2(10, 10), a * 10.0);
+}

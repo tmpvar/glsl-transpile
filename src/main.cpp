@@ -249,37 +249,29 @@ int main(int, char* argv[]) {
      return 1;
   }
 
+  nlohmann::json obj;
+
+
+  ios::sync_with_stdio(false);
+  cin >> noskipws;
+  istream_iterator<char> stdinIterator(std::cin);
+  istream_iterator<char> stdinEnd;
+  string jsonInput(stdinIterator, stdinEnd);
+
   glslang::TShader *shader = new glslang::TShader(EShLangCompute);
   glslang::TProgram *program = new glslang::TProgram();
   shader->setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
   shader->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_4);
-  nlohmann::json obj;
 
-  const char *shaderString[1] = {
-    "uniform vec3 aVector;\n"
-    "uniform sampler1D my1DTexture;\n"
-    "uniform sampler2D myTexture;\n"
-    "uniform sampler3D myArrayTexture[2];\n"
-    "uniform vec3 anUnusedVector;\n"
-    "uniform mat4 anUnusedMat4;\n"
-    "layout(rgba32f) uniform image2D img1;\n"
-    "layout(local_size_x = 32, local_size_y = 8, local_size_z = 1) in;\n"
-    "layout (std430) buffer blueNoiseBuffer {\n"
-    "  vec4 blueNoise[];\n"
-    "};\n"
-    "layout (std430) buffer unusedBuffer {\n"
-    "  float aFloat;\n"
-    "  uint aUint;\n"
-    "  vec4 unused[];\n"
-    "};\n"
-    "void main() {\n"
-    "  blueNoise[gl_GlobalInvocationID.x] = vec4(aVector, 1.0);\n"
-    "  vec4 a = imageLoad(img1, ivec2(10, 10));\n"
-    "  imageStore(img1, ivec2(10, 10), a * 10.0);\n"
-    "}\n\0"
+  const char *shaderSources[1] = {
+    jsonInput.c_str()
   };
-  // TODO: use setStringsWithLengths for safety
-  shader->setStrings(&shaderString[0], 1);
+
+  int shaderLengths[1] = {
+    static_cast<int>(jsonInput.size())
+  };
+
+  shader->setStringsWithLengths(shaderSources, shaderLengths, 1);
   TBuiltInResource Resources = glslang::DefaultTBuiltInResource;
   EShMessages messages = EShMessages(0);
   // TODO: shader->preprocess to load in the includes
@@ -362,5 +354,5 @@ int main(int, char* argv[]) {
     }
   }
   std::cout << obj.dump(4) << std::endl;
-  return 1;
+  return 0;
 }
